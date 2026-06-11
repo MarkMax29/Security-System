@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f1117">
+<title>Sistem Securitate</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #2d3748;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .conn-badge { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #718096; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: #e53e3e; transition: background 0.3s; }
+  .conn-dot.connected { background: #48bb78; }
+
+  /* Buton notificari */
+  #btn-notif {
+    background: #2d3748;
+    border: none;
+    color: #a0aec0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #btn-notif.active { background: #276749; color: #9ae6b4; }
+
+  /* ── IP Bar ── */
+  .ip-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+  .ip-bar input {
+    flex: 1;
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    color: #e2e8f0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    min-width: 0;
+  }
+  .ip-bar input:focus { border-color: #4299e1; }
+  .ip-bar button {
+    background: #4299e1;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ── Banere alarma ── */
+  .banner {
+    display: none;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: center;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  .banner.alarma  { display: block; background: #9b2c2c; color: #fed7d7; border: 1px solid #e53e3e; }
+  .banner.blocat  { display: block; background: #7b341e; color: #feebc8; border: 1px solid #dd6b20; }
+  .banner.apel112 { display: block; background: #1a365d; color: #bee3f8; border: 1px solid #3182ce; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.75} }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+    body { padding: 10px; }
+    .header h1 { font-size: 16px; }
+  }
+
+  /* ── Card ── */
+  .card {
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #718096;
+    margin-bottom: 12px;
+  }
+  .full-width { grid-column: 1 / -1; }
+
+  /* ── Status badge ── */
+  .status-badge {
+    display: inline-block;
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 700;
+    transition: all 0.3s;
+  }
+  .s-DEZARMAT    { background: #276749; color: #9ae6b4; }
+  .s-ARMAT       { background: #2a4365; color: #90cdf4; }
+  .s-ENTRY_DELAY { background: #7b5e00; color: #fefcbf; }
+  .s-PIN_ENTRY   { background: #7b5e00; color: #fefcbf; }
+  .s-ALARMA      { background: #9b2c2c; color: #fed7d7; }
+  .s-BLOCAT      { background: #9b2c2c; color: #fed7d7; }
+  .s-APEL_112    { background: #1a365d; color: #bee3f8; }
+
+  /* ── Senzori ── */
+  .senzor-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid #2d3748;
+  }
+  .senzor-row:last-child { border-bottom: none; }
+  .senzor-label { font-size: 13px; color: #a0aec0; }
+  .senzor-val { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 12px; }
+  .val-ok      { background: #1c4532; color: #68d391; }
+  .val-activ   { background: #7b341e; color: #fbd38d; }
+
+  /* ── PIR counter ── */
+  .pir-nums { display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-bottom: 5px; }
+  .pir-nums span:first-child { font-size: 20px; font-weight: 700; color: #e2e8f0; }
+  .progress-bar { height: 6px; background: #2d3748; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #4299e1; border-radius: 3px; transition: width 0.4s ease; }
+  .progress-fill.aproape { background: #ed8936; }
+  .progress-fill.critic  { background: #e53e3e; }
+
+  /* ── Butoane ── */
+  .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; }
+  .btn:last-child { margin-bottom: 0; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-green  { background: #276749; color: #9ae6b4; }
+  .btn-green:hover:not(:disabled) { background: #2f855a; }
+  .btn-blue   { background: #2a4365; color: #90cdf4; }
+  .btn-blue:hover:not(:disabled)  { background: #2c5282; }
+  .btn-red    { background: #9b2c2c; color: #fed7d7; }
+  .btn-red:hover:not(:disabled)   { background: #c53030; }
+  .btn-gray   { background: #2d3748; color: #a0aec0; }
+  .btn-gray:hover:not(:disabled)  { background: #4a5568; }
+
+  /* ── PIN input ── */
+  .pin-input-row { display: flex; gap: 8px; margin-top: 10px; }
+  .pin-input-row input {
+    flex: 1; background: #0f1117; border: 1px solid #2d3748;
+    color: #e2e8f0; padding: 10px 12px; border-radius: 8px;
+    font-size: 16px; letter-spacing: 6px; text-align: center; outline: none; max-width: 120px;
+  }
+  .pin-input-row input:focus { border-color: #4299e1; }
+  .pin-input-row button {
+    flex: 1; background: #4299e1; color: white; border: none;
+    padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+
+  /* ── Camera ── */
+  .camera-container {
+    position: relative; background: #0f1117; border-radius: 8px;
+    overflow: hidden; aspect-ratio: 16/9; display: flex;
+    align-items: center; justify-content: center;
+  }
+  #camera-video { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  .camera-placeholder { text-align: center; color: #4a5568; display: none; }
+  .camera-placeholder p { font-size: 13px; }
+  .rec-badge {
+    display: none; position: absolute; top: 10px; left: 10px;
+    background: #e53e3e; color: white; font-size: 11px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px; animation: pulse 1s infinite;
+  }
+  .rec-badge.activ { display: block; }
+  .rec-countdown {
+    display: none; position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.6); color: #fc8181; font-size: 12px;
+    font-weight: 600; padding: 3px 8px; border-radius: 4px;
+  }
+  .rec-countdown.activ { display: block; }
+  .camera-btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .camera-btn-row button {
+    flex: 1; padding: 9px; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer; background: #2d3748; color: #a0aec0;
+  }
+
+  /* ── Istoric alarme ── */
+  .istoric-list { max-height: 200px; overflow-y: auto; }
+  .istoric-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid #2d3748; font-size: 13px;
+  }
+  .istoric-item:last-child { border-bottom: none; }
+  .istoric-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .istoric-body { flex: 1; }
+  .istoric-motiv { font-weight: 600; color: #fc8181; }
+  .istoric-timp  { font-size: 11px; color: #718096; margin-top: 2px; }
+  .istoric-gol   { color: #4a5568; font-size: 13px; text-align: center; padding: 16px 0; }
+  .istoric-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .btn-clear-istoric { background: none; border: none; color: #718096; font-size: 12px; cursor: pointer; }
+  .btn-clear-istoric:hover { color: #fc8181; }
+
+  /* ── Galerie ── */
+  .galerie-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .galerie-header button { background: #2d3748; color: #a0aec0; border: none; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .galerie-count { font-size: 12px; color: #718096; }
+  .galerie-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px; max-height: 360px; overflow-y: auto; padding-right: 2px;
+  }
+  .galerie-item { background: #0f1117; border: 1px solid #2d3748; border-radius: 8px; overflow: hidden; }
+  .galerie-item:hover { border-color: #4299e1; }
+  .galerie-item img, .galerie-item video { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; cursor: pointer; }
+  .galerie-info { padding: 6px 8px; font-size: 10px; color: #718096; display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+  .galerie-tip { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; flex-shrink: 0; }
+  .tip-foto  { background: #2a4365; color: #90cdf4; }
+  .tip-video { background: #276749; color: #9ae6b4; }
+  .galerie-ora { flex: 1; text-align: center; }
+  .galerie-item a { font-size: 14px; color: #4299e1; text-decoration: none; flex-shrink: 0; }
+  .galerie-gol { color: #4a5568; font-size: 13px; text-align: center; padding: 24px 0; border: 1px dashed #2d3748; border-radius: 8px; }
+
+  /* ── Lightbox ── */
+  .lightbox {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+    z-index: 999; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px;
+  }
+  .lightbox.activ { display: flex; }
+  .lightbox img { max-width: 92vw; max-height: 80vh; border-radius: 8px; }
+  .lightbox button { background: #2d3748; color: #e2e8f0; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+
+  /* ── Log ── */
+  .log-box { background: #0f1117; border-radius: 8px; padding: 10px; height: 120px; overflow-y: auto; font-size: 12px; font-family: monospace; color: #68d391; }
+  .log-entry { padding: 2px 0; border-bottom: 1px solid #1a202c; }
+  .log-entry.warn  { color: #fbd38d; }
+  .log-entry.error { color: #fc8181; }
+  .log-entry.info  { color: #90cdf4; }
+
+  /* ── Toast ── */
+  #toast-container { position: fixed; top: 16px; right: 16px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; max-width: calc(100vw - 32px); }
+  .toast { padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .toast.success { background: #276749; color: #9ae6b4; border-left: 3px solid #48bb78; }
+  .toast.warning { background: #7b5e00; color: #fefcbf; border-left: 3px solid #ecc94b; }
+  .toast.error   { background: #9b2c2c; color: #fed7d7; border-left: 3px solid #e53e3e; }
+  .toast.info    { background: #2a4365; color: #90cdf4; border-left: 3px solid #4299e1; }
+  @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- Header -->
+<div class="header">
+  <h1>🔐 Sistem Securitate</h1>
+  <div class="header-right">
+    <button id="btn-notif" onclick="toggleNotificari()">🔔 Activează notificări</button>
+    <div class="conn-badge">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-label">Deconectat</span>
+    </div>
+  </div>
+</div>
+
+<!-- IP Bar -->
+<div class="ip-bar">
+  <input type="text" id="ip-input" placeholder="IP sau URL ESP32 (ex: 192.168.0.104)" />
+  <button onclick="conecteaza()">Conectează</button>
+</div>
+
+<!-- Banere -->
+<div class="banner" id="banner-alarma">🚨 ALARMĂ ACTIVĂ — Introduceți PIN sau opriți din aplicație!</div>
+<div class="banner" id="banner-blocat">🔒 SISTEM BLOCAT — Oprire disponibilă doar din aplicație!</div>
+<div class="banner" id="banner-112">🚨 SE APELEAZĂ SERVICIILE DE URGENȚĂ — 112!</div>
+
+<!-- Grid -->
+<div class="grid">
+
+  <!-- Status sistem -->
+  <div class="card">
+    <div class="card-title">Status sistem</div>
+    <span class="status-badge s-DEZARMAT" id="status-badge">DEZARMAT</span>
+    <div style="margin-top:14px;">
+      <div class="senzor-row">
+        <span class="senzor-label">Senzor PIR</span>
+        <span class="senzor-val val-ok" id="pir-val">Liber</span>
+      </div>
+      <div class="senzor-row">
+        <span class="senzor-label">Reed / Ușă</span>
+        <span class="senzor-val val-ok" id="reed-val">Închisă</span>
+      </div>
+      <div class="senzor-row">
+        <span class="senzor-label">Servo</span>
+        <span class="senzor-val val-ok" id="servo-val">Deblocat</span>
+      </div>
+      <div class="senzor-row">
+        <span class="senzor-label">Greșeli PIN</span>
+        <span class="senzor-val val-ok" id="greseli-val">0 / 3</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIR counter -->
+  <div class="card">
+    <div class="card-title">Detecții mișcare (armat)</div>
+    <div>
+      <div class="pir-nums">
+        <span id="miscari-nr">0</span>
+        <span>din 10 → Entry Delay</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="pir-progress" style="width:0%"></div>
+      </div>
+      <div style="margin-top:8px; font-size:12px; color:#718096;">
+        Total PIR: <span id="total-pir">0</span> &nbsp;|&nbsp; Deschideri: <span id="total-reed">0</span>
+      </div>
+    </div>
+    <button class="btn btn-gray" id="btn-confirma-ok" onclick="confirmaOk()" style="margin-top:12px;" disabled>
+      ✅ Confirmă OK — resetează counter
+    </button>
+  </div>
+
+  <!-- Actiuni -->
+  <div class="card">
+    <div class="card-title">Acțiuni</div>
+    <button class="btn btn-blue"  id="btn-armeaza"    onclick="trimiteComanda('armeaza')"        disabled>🔒 Armează sistem</button>
+    <button class="btn btn-green" id="btn-dezarmeaza" onclick="trimiteComanda('dezarmeaza')"     disabled>🔓 Dezarmează sistem</button>
+    <button class="btn btn-red"   id="btn-opreste"    onclick="trimiteComanda('opreste_alarma')" disabled>🚨 Oprește alarma</button>
+  </div>
+
+  <!-- Schimbare PIN -->
+  <div class="card">
+    <div class="card-title">Schimbare PIN</div>
+    <p style="font-size:13px; color:#718096; margin-bottom:4px;">PIN nou (4 cifre):</p>
+    <div class="pin-input-row">
+      <input type="password" id="pin-nou" maxlength="4" inputmode="numeric" placeholder="••••" />
+      <button onclick="schimbaPin()">Setează</button>
+    </div>
+    <p style="font-size:11px; color:#4a5568; margin-top:8px;">Salvat permanent în ESP32.</p>
+  </div>
+
+  <!-- Istoric alarme -->
+  <div class="card full-width">
+    <div class="istoric-header">
+      <div class="card-title" style="margin-bottom:0;">Istoric alarme</div>
+      <button class="btn-clear-istoric" onclick="stergeIstoric()">🗑 Șterge</button>
+    </div>
+    <div class="istoric-list" id="istoric-list">
+      <div class="istoric-gol" id="istoric-gol">Nicio alarmă înregistrată.</div>
+    </div>
+  </div>
+
+  <!-- Camera -->
+  <div class="card full-width">
+    <div class="card-title">Camera de supraveghere</div>
+    <div class="camera-container">
+      <video id="camera-video" autoplay muted playsinline></video>
+      <div class="camera-placeholder" id="camera-placeholder">
+        <p>Se pornește camera...</p>
+      </div>
+      <div class="rec-badge" id="rec-badge">⏺ REC</div>
+      <div class="rec-countdown" id="rec-countdown"></div>
+    </div>
+    <div class="camera-btn-row">
+      <button onclick="opresteCamera()">■ Stop cameră</button>
+    </div>
+  </div>
+
+  <!-- Galerie -->
+  <div class="card full-width">
+    <div class="galerie-header">
+      <div>
+        <div class="card-title" style="margin-bottom:2px;">Galerie evenimente</div>
+        <span class="galerie-count" id="galerie-count">0 evenimente</span>
+      </div>
+      <button onclick="stergeGalerie()">🗑 Șterge tot</button>
+    </div>
+    <div id="galerie-gol" class="galerie-gol">📷 Niciun eveniment înregistrat.<br><span style="font-size:11px;">Apare automat la detecție PIR când sistemul e armat.</span></div>
+    <div class="galerie-grid" id="galerie-grid" style="display:none;"></div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="inchideLightbox()">
+    <img id="lightbox-img" src="" alt="Poza mare">
+    <button onclick="inchideLightbox()">✕ Închide</button>
+  </div>
+
+  <!-- Log -->
+  <div class="card full-width">
+    <div class="card-title">Log evenimente</div>
+    <div class="log-box" id="log-box">
+      <div class="log-entry info">[--:--:--] Aștept conexiune ESP32...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── State global ─────────────────────────────────────────────
+  let ws               = null;
+  let stareCurenta     = 'DEZARMAT';
+  let cameraStream     = null;
+  let mediaRecorder    = null;
+  let recordedChunks   = [];
+  let recInterval      = null;
+  let recSecunde       = 0;
+  let galerieItems     = [];
+  let istoricAlarme    = [];
+  let pirStareAnt      = false;
+  let notifActive      = false;
+  let stareAnterioara  = 'DEZARMAT';
+
+  const DURATA_VIDEO  = 10;
+  const MAX_GALERIE   = 10;
+  const MAX_ISTORIC   = 30;
+
+  // ── Conectare WebSocket ──────────────────────────────────────
+  function conecteaza() {
+    const val = document.getElementById('ip-input').value.trim();
+    if (!val) { showToast('Introdu IP-ul ESP32!', 'warning'); return; }
+
+    if (ws) ws.close();
+
+    // Suporta atat IP cat si URL (pentru ngrok)
+    const wsUrl = val.startsWith('ws') ? val : `ws://${val}:81`;
+    adaugaLog(`Conectare la ${wsUrl} ...`, 'info');
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      document.getElementById('conn-dot').classList.add('connected');
+      document.getElementById('conn-label').textContent = `Conectat`;
+      adaugaLog('Conexiune WebSocket stabilita!', 'info');
+      activeazaButoane(true);
+      showToast('Conectat la ESP32!', 'success');
+    };
+
+    ws.onclose = () => {
+      document.getElementById('conn-dot').classList.remove('connected');
+      document.getElementById('conn-label').textContent = 'Deconectat';
+      adaugaLog('Conexiune pierduta. Reconectare in 5s...', 'warn');
+      activeazaButoane(false);
+      setTimeout(() => { if (document.getElementById('ip-input').value) conecteaza(); }, 5000);
+    };
+
+    ws.onerror = () => {
+      adaugaLog('Eroare conexiune WebSocket.', 'error');
+      showToast('Nu s-a putut conecta la ESP32', 'error');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'status')      proceseazaStatus(data);
+        if (data.type === 'notificare')  showToast(data.mesaj, data.tip);
+        if (data.type === 'alarma_log')  adaugaIstoric(data);
+      } catch(e) { console.error('JSON invalid:', e); }
+    };
+  }
+
+  // ── Procesare status ─────────────────────────────────────────
+  function proceseazaStatus(data) {
+    const stariArmate = ['ARMAT','ENTRY_DELAY','PIN_ENTRY','ALARMA','BLOCAT','APEL_112'];
+
+    // Camera: declanseaza la PIR doar cand e armat
+    if (data.pir && !pirStareAnt && stariArmate.includes(data.stare)) {
+      declansatDeMiscare();
+    }
+    pirStareAnt = data.pir;
+
+    // Notificare push la schimbare stare importanta
+    if (data.stare !== stareAnterioara) {
+      if (data.stare === 'ALARMA')   trimitePushNotif('🚨 ALARMĂ ACTIVĂ!', 'Sistemul de securitate a detectat o intruziune!');
+      if (data.stare === 'BLOCAT')   trimitePushNotif('🔒 Sistem BLOCAT', '3 greșeli PIN consecutive. Oprire doar din aplicație!');
+      if (data.stare === 'APEL_112') trimitePushNotif('🚨 APEL 112!', 'Alarma nerezolvată 60s — servicii de urgență apelate!');
+      if (data.stare === 'ARMAT')    trimitePushNotif('🔒 Sistem armat', 'Sistemul de securitate este acum activ.');
+      stareAnterioara = data.stare;
+    }
+
+    stareCurenta = data.stare;
+
+    // Badge stare
+    const badge = document.getElementById('status-badge');
+    badge.textContent = data.stare.replace(/_/g, ' ');
+    badge.className = `status-badge s-${data.stare}`;
+
+    // Senzori
+    setVal('pir-val',    data.pir  ? 'Mișcare!'  : 'Liber',    data.pir  ? 'val-activ' : 'val-ok');
+    setVal('reed-val',   data.reed ? 'Deschisă'  : 'Închisă',  data.reed ? 'val-activ' : 'val-ok');
+    setVal('servo-val',  data.usa_deblocata ? 'Deblocat' : 'Blocat', data.usa_deblocata ? 'val-ok' : 'val-activ');
+    setVal('greseli-val', `${data.greseli} / 3`, data.greseli > 0 ? 'val-activ' : 'val-ok');
+
+    // Counter PIR
+    const miscari = data.miscari_armat || 0;
+    document.getElementById('miscari-nr').textContent  = miscari;
+    document.getElementById('total-pir').textContent   = data.total_pir  || 0;
+    document.getElementById('total-reed').textContent  = data.total_reed || 0;
+    const pct  = Math.min((miscari / 10) * 100, 100);
+    const fill = document.getElementById('pir-progress');
+    fill.style.width  = pct + '%';
+    fill.className    = 'progress-fill' + (pct >= 80 ? ' critic' : pct >= 50 ? ' aproape' : '');
+
+    // Banere
+    document.getElementById('banner-alarma').style.display = data.stare === 'ALARMA'   ? 'block' : 'none';
+    document.getElementById('banner-blocat').style.display = data.stare === 'BLOCAT'   ? 'block' : 'none';
+    document.getElementById('banner-112').style.display    = data.stare === 'APEL_112' ? 'block' : 'none';
+
+    // Butoane contextuale
+    const eArmat   = ['ARMAT','ENTRY_DELAY','PIN_ENTRY'].includes(data.stare);
+    const eAlarma  = ['ALARMA','BLOCAT','APEL_112'].includes(data.stare);
+    const eDezarmat = data.stare === 'DEZARMAT';
+    document.getElementById('btn-armeaza').disabled    = !eDezarmat;
+    document.getElementById('btn-dezarmeaza').disabled = eDezarmat || eAlarma;
+    document.getElementById('btn-opreste').disabled    = !eAlarma;
+    document.getElementById('btn-confirma-ok').disabled = data.stare !== 'ARMAT';
+  }
+
+  // ── Comenzi catre ESP32 ──────────────────────────────────────
+  function trimiteComanda(cmd, extra = {}) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      showToast('Nu ești conectat!', 'error'); return;
+    }
+    ws.send(JSON.stringify({ cmd, ...extra }));
+    adaugaLog(`Comanda: ${cmd}`, 'info');
+  }
+
+  function confirmaOk()  { trimiteComanda('confirma_ok'); }
+
+  function schimbaPin() {
+    const pin = document.getElementById('pin-nou').value.trim();
+    if (!/^\d{4}$/.test(pin)) { showToast('PIN-ul trebuie sa fie exact 4 cifre!', 'warning'); return; }
+    trimiteComanda('schimba_pin', { pin });
+    document.getElementById('pin-nou').value = '';
+  }
+
+  // ── Notificari push browser ───────────────────────────────────
+  async function toggleNotificari() {
+    if (notifActive) {
+      notifActive = false;
+      document.getElementById('btn-notif').textContent = '🔔 Activează notificări';
+      document.getElementById('btn-notif').classList.remove('active');
+      showToast('Notificări dezactivate', 'info');
+      return;
+    }
+
+    if (!('Notification' in window)) {
+      showToast('Browserul nu suportă notificări push', 'error'); return;
+    }
+
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      notifActive = true;
+      document.getElementById('btn-notif').textContent = '🔔 Notificări active';
+      document.getElementById('btn-notif').classList.add('active');
+      showToast('Notificări activate!', 'success');
+      new Notification('Sistem Securitate', { body: 'Notificările push sunt active!', icon: '' });
+    } else {
+      showToast('Permisiunea pentru notificări refuzată', 'error');
+    }
+  }
+
+  function trimitePushNotif(titlu, mesaj) {
+    if (!notifActive || Notification.permission !== 'granted') return;
+    new Notification(titlu, { body: mesaj, icon: '', tag: 'securitate', renotify: true });
+  }
+
+  // ── Istoric alarme ────────────────────────────────────────────
+  function adaugaIstoric(data) {
+    const ora = new Date().toLocaleString('ro-RO');
+    istoricAlarme.unshift({ motiv: data.motiv || 'Alarmă', ora });
+    if (istoricAlarme.length > MAX_ISTORIC) istoricAlarme.pop();
+    randeazaIstoric();
+  }
+
+  // Adaugam in istoric si din schimbarile de stare locale
+  function adaugaIstoricLocal(motiv) {
+    const ora = new Date().toLocaleString('ro-RO');
+    istoricAlarme.unshift({ motiv, ora });
+    if (istoricAlarme.length > MAX_ISTORIC) istoricAlarme.pop();
+    randeazaIstoric();
+  }
+
+  function randeazaIstoric() {
+    const list = document.getElementById('istoric-list');
+    const gol  = document.getElementById('istoric-gol');
+
+    if (istoricAlarme.length === 0) {
+      gol.style.display = 'block';
+      return;
+    }
+    gol.style.display = 'none';
+
+    list.innerHTML = '';
+    istoricAlarme.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'istoric-item';
+      div.innerHTML = `
+        <span class="istoric-icon">🚨</span>
+        <div class="istoric-body">
+          <div class="istoric-motiv">${item.motiv}</div>
+          <div class="istoric-timp">${item.ora}</div>
+        </div>`;
+      list.appendChild(div);
+    });
+  }
+
+  function stergeIstoric() {
+    istoricAlarme = [];
+    document.getElementById('istoric-gol').style.display = 'block';
+    document.getElementById('istoric-list').innerHTML = '<div class="istoric-gol" id="istoric-gol">Nicio alarmă înregistrată.</div>';
+  }
+
+  // ── Camera ───────────────────────────────────────────────────
+  async function pornestCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const video  = document.getElementById('camera-video');
+      video.srcObject = cameraStream;
+      document.getElementById('camera-placeholder').style.display = 'none';
+      adaugaLog('Camera pornita automat', 'info');
+    } catch(e) {
+      adaugaLog('Eroare camera: ' + e.message, 'error');
+    }
+  }
+
+  function opresteCamera() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    clearInterval(recInterval);
+    document.getElementById('rec-badge').classList.remove('activ');
+    document.getElementById('rec-countdown').classList.remove('activ');
+  }
+
+  function captureazaPoza(ora) {
+    const video = document.getElementById('camera-video');
+    if (!cameraStream || !video.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+      const url  = URL.createObjectURL(blob);
+      const nume = `poza_${ora.replace(/:/g,'-')}.jpg`;
+      const a = document.createElement('a'); a.href = url; a.download = nume; a.click();
+      adaugaInGalerie({ tip: 'foto', url, nume, ora });
+      adaugaLog(`Poza capturata: ${nume}`, 'warn');
+    }, 'image/jpeg', 0.92);
+  }
+
+  function incepeInregistrare(ora) {
+    if (!cameraStream) return;
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') return;
+    recordedChunks = [];
+    mediaRecorder  = new MediaRecorder(cameraStream, { mimeType: 'video/webm' });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url  = URL.createObjectURL(blob);
+      const nume = `video_${ora.replace(/:/g,'-')}.webm`;
+      const a = document.createElement('a'); a.href = url; a.download = nume; a.click();
+      adaugaInGalerie({ tip: 'video', url, nume, ora });
+      adaugaLog(`Video salvat: ${nume}`, 'warn');
+      document.getElementById('rec-badge').classList.remove('activ');
+      document.getElementById('rec-countdown').classList.remove('activ');
+      clearInterval(recInterval);
+    };
+    mediaRecorder.start();
+    document.getElementById('rec-badge').classList.add('activ');
+    const cd = document.getElementById('rec-countdown');
+    cd.classList.add('activ');
+    recSecunde = DURATA_VIDEO;
+    cd.textContent = recSecunde + 's';
+    recInterval = setInterval(() => {
+      recSecunde--;
+      cd.textContent = recSecunde + 's';
+      if (recSecunde <= 0) {
+        clearInterval(recInterval);
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      }
+    }, 1000);
+  }
+
+  function declansatDeMiscare() {
+    const ora = new Date().toTimeString().slice(0,8);
+    showToast('Mișcare detectată! Capturare...', 'warning');
+    adaugaIstoricLocal('Mișcare PIR detectată');
+    captureazaPoza(ora);
+    setTimeout(() => incepeInregistrare(ora), 300);
+  }
+
+  // ── Galerie ───────────────────────────────────────────────────
+  function adaugaInGalerie(item) {
+    galerieItems.unshift(item);
+    if (galerieItems.length > MAX_GALERIE) URL.revokeObjectURL(galerieItems.pop().url);
+    randeazaGalerie();
+  }
+
+  function randeazaGalerie() {
+    const grid  = document.getElementById('galerie-grid');
+    const gol   = document.getElementById('galerie-gol');
+    const count = document.getElementById('galerie-count');
+    count.textContent = `${galerieItems.length} eveniment${galerieItems.length !== 1 ? 'e' : ''}`;
+    grid.innerHTML = '';
+    if (galerieItems.length === 0) { gol.style.display = 'block'; grid.style.display = 'none'; return; }
+    gol.style.display = 'none'; grid.style.display = 'grid';
+    galerieItems.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'galerie-item';
+      if (item.tip === 'foto') {
+        div.innerHTML = `<img src="${item.url}" alt="Poza" onclick="deschideLightbox('${item.url}')">
+          <div class="galerie-info"><span class="galerie-tip tip-foto">FOTO</span><span class="galerie-ora">${item.ora}</span><a href="${item.url}" download="${item.nume}">⬇</a></div>`;
+      } else {
+        div.innerHTML = `<video src="${item.url}" controls muted></video>
+          <div class="galerie-info"><span class="galerie-tip tip-video">VIDEO</span><span class="galerie-ora">${item.ora}</span><a href="${item.url}" download="${item.nume}">⬇</a></div>`;
+      }
+      grid.appendChild(div);
+    });
+  }
+
+  function stergeGalerie() { galerieItems.forEach(i => URL.revokeObjectURL(i.url)); galerieItems = []; randeazaGalerie(); }
+  function deschideLightbox(url) { document.getElementById('lightbox-img').src = url; document.getElementById('lightbox').classList.add('activ'); }
+  function inchideLightbox() { document.getElementById('lightbox').classList.remove('activ'); document.getElementById('lightbox-img').src = ''; }
+
+  // ── Utilitare UI ─────────────────────────────────────────────
+  function setVal(id, text, cls) { const el = document.getElementById(id); el.textContent = text; el.className = `senzor-val ${cls}`; }
+
+  function activeazaButoane(activ) {
+    ['btn-armeaza','btn-dezarmeaza','btn-opreste'].forEach(id => document.getElementById(id).disabled = !activ);
+  }
+
+  function adaugaLog(mesaj, tip = '') {
+    const box = document.getElementById('log-box');
+    const now = new Date();
+    const time = now.toTimeString().slice(0,8);
+    const div = document.createElement('div');
+    div.className = `log-entry ${tip}`;
+    div.textContent = `[${time}] ${mesaj}`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    while (box.children.length > 60) box.removeChild(box.firstChild);
+  }
+
+  function showToast(mesaj, tip = 'info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${tip}`; t.textContent = mesaj;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+
+  // ── Enter shortcuts ───────────────────────────────────────────
+  document.getElementById('ip-input').addEventListener('keydown', e => { if (e.key === 'Enter') conecteaza(); });
+  document.getElementById('pin-nou').addEventListener('keydown',  e => { if (e.key === 'Enter') schimbaPin(); });
+
+  // ── Pornire automata camera ───────────────────────────────────
+  window.addEventListener('load', () => pornestCamera());
+</script>
+</body>
+</html>
