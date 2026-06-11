@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,Arial);background:transparent;color:var(--color-text-primary)}
+.wrap{padding:16px 0}
+.state-row{display:flex;justify-content:center;margin-bottom:8px}
+.arrow-row{display:flex;justify-content:center;align-items:center;margin-bottom:8px;gap:0}
+.state-box{border-radius:10px;padding:10px 18px;cursor:pointer;text-align:center;min-width:220px;border:1.5px solid transparent;transition:opacity .15s}
+.state-box:hover{opacity:.85}
+.title{font-size:14px;font-weight:500;margin-bottom:3px}
+.sub{font-size:11px;opacity:.75}
+.s-dezarmat{background:#E1F5EE;border-color:#0F6E56;color:#085041}
+.s-armat{background:#E6F1FB;border-color:#185FA5;color:#0C447C}
+.s-entry{background:#FAEEDA;border-color:#854F0B;color:#633806}
+.s-pin{background:#FAEEDA;border-color:#BA7517;color:#633806}
+.s-alarma{background:#FCEBEB;border-color:#A32D2D;color:#791F1F}
+.s-blocat{background:#FCEBEB;border-color:#A32D2D;color:#791F1F}
+.s-112{background:#FAECE7;border-color:#993C1D;color:#712B13}
+.arr-down{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:220px}
+.arr-label{font-size:10px;color:var(--color-text-secondary);text-align:center;max-width:200px;line-height:1.3}
+.arr-line{width:1.5px;height:22px;background:var(--color-border-secondary)}
+.arr-head{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--color-border-secondary)}
+.arr-green .arr-line{background:#1D9E75}
+.arr-green .arr-head{border-top-color:#1D9E75}
+.arr-green .arr-label{color:#0F6E56}
+.arr-red .arr-line{background:#A32D2D}
+.arr-red .arr-head{border-top-color:#A32D2D}
+.arr-red .arr-label{color:#A32D2D}
+.arr-blue .arr-line{background:#185FA5}
+.arr-blue .arr-head{border-top-color:#185FA5}
+.arr-blue .arr-label{color:#185FA5}
+.two-col{display:flex;justify-content:center;gap:40px;margin-bottom:8px}
+.side-arr{display:flex;flex-direction:column;align-items:center;gap:2px}
+.panel{background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:10px;padding:14px 18px;margin-top:16px;font-size:13px;line-height:1.6}
+.panel h3{font-size:14px;font-weight:500;margin-bottom:8px}
+.panel-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px}
+.pitem{background:var(--color-background-primary);border-radius:7px;padding:8px 10px;font-size:12px}
+.pitem .pl{font-size:10px;font-weight:500;color:var(--color-text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.legend{display:flex;gap:20px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-secondary)}
+.leg-line{width:24px;height:2px}
+.side-return{display:flex;align-items:center;gap:6px;font-size:10px;color:#1D9E75;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="state-row">
+  <div class="state-box s-dezarmat" onclick="showPanel('dezarmat')">
+    <div class="title">DEZARMAT</div>
+    <div class="sub">Servo 90° · Keypad activ · Senzori monitorizati</div>
+  </div>
+</div>
+
+<div class="arrow-row">
+  <div class="arr-down arr-green">
+    <div class="arr-label">Tasta A pe keypad sau cmd "armeaza" din app</div>
+    <div class="arr-line"></div><div class="arr-head"></div>
+  </div>
+</div>
+
+<div class="state-row">
+  <div class="state-box s-armat" onclick="showPanel('armat')">
+    <div class="title">ARMAT</div>
+    <div class="sub">Servo 0° · PIR x10 sau Reed → Entry Delay</div>
+  </div>
+</div>
+
+<div class="arrow-row">
+  <div class="arr-down arr-blue">
+    <div class="arr-label">Reed deschis (imediat) sau PIR atinge multiplu de 10</div>
+    <div class="arr-line"></div><div class="arr-head"></div>
+  </div>
+</div>
+
+<div class="state-row">
+  <div class="state-box s-entry" onclick="showPanel('entry')">
+    <div class="title">ENTRY DELAY</div>
+    <div class="sub">Countdown 20s pe OLED · Asteapta PIN</div>
+  </div>
+</div>
+
+<div class="arrow-row">
+  <div class="arr-down arr-blue">
+    <div class="arr-label">Orice cifra de pe keypad</div>
+    <div class="arr-line"></div><div class="arr-head"></div>
+  </div>
+</div>
+
+<div class="state-row">
+  <div class="state-box s-pin" onclick="showPanel('pin')">
+    <div class="title">PIN ENTRY</div>
+    <div class="sub">Acumuleaza 4 cifre · Verifica automat</div>
+  </div>
+</div>
+
+<div class="arrow-row">
+  <div class="arr-down arr-red">
+    <div class="arr-label">20s expirat fara PIN sau 3 greseli consecutive</div>
+    <div class="arr-line"></div><div class="arr-head"></div>
+  </div>
+</div>
+
+<div class="state-row">
+  <div class="state-box s-alarma" onclick="showPanel('alarma')">
+    <div class="title">ALARMA ACTIVA</div>
+    <div class="sub">Buzzer continuu · OLED blink · Timer 60s pornit</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <div class="arr-down arr-red" style="min-width:160px">
+      <div class="arr-label">3 greseli PIN in starea Alarma</div>
+      <div class="arr-line"></div><div class="arr-head"></div>
+    </div>
+    <div class="state-box s-blocat" style="min-width:160px" onclick="showPanel('blocat')">
+      <div class="title">BLOCAT</div>
+      <div class="sub">Keypad ignorat total</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <div class="arr-down arr-red" style="min-width:160px">
+      <div class="arr-label">60s fara dezarmare</div>
+      <div class="arr-line"></div><div class="arr-head"></div>
+    </div>
+    <div class="state-box s-112" style="min-width:160px" onclick="showPanel('s112')">
+      <div class="title">APEL 112</div>
+      <div class="sub">Alerta maxima</div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-line" style="background:#1D9E75"></div>Tranzitie sigura (PIN corect / app web)</div>
+  <div class="leg-item"><div class="leg-line" style="background:#185FA5"></div>Declansare senzor</div>
+  <div class="leg-item"><div class="leg-line" style="background:#A32D2D"></div>Esec / timeout</div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:var(--color-text-secondary);margin-top:8px">
+  Din orice stare colorata: PIN corect sau comanda din app → DEZARMAT
+</div>
+
+<div class="panel" id="panel" style="display:none">
+  <h3 id="panel-title"></h3>
+  <div class="panel-grid" id="panel-grid"></div>
+</div>
+
+</div>
+<script>
+const data={
+  dezarmat:{title:"DEZARMAT — starea normala de repaus",items:[
+    {l:"Hardware",v:"Servo la 90° (usa deblocata), Buzzer oprit, OLED afiseaza status normal"},
+    {l:"Senzori",v:"PIR si Reed cititi continuu dar FARA consecinte — doar afiseaza pe OLED"},
+    {l:"Keypad",v:"A = armeaza, # = toggle servo (blocare/deblocare usa), cifre ignorate"},
+    {l:"Iesire",v:"Tasta A sau comanda 'armeaza' din dashboard → ARMAT"},
+    {l:"Buzzer",v:"Beep scurt la detectie PIR sau Reed (informativ, nu alarma)"},
+    {l:"OLED",v:"Afiseaza: DEZARMAT, status PIR, status usa, instructiuni taste"},
+  ]},
+  armat:{title:"ARMAT — sistemul pazeste activ",items:[
+    {l:"Hardware",v:"Servo la 0° (usa blocata), Buzzer OFF, senzori in stare de alerta"},
+    {l:"PIR",v:"Fiecare detectie incrementeaza numarMiscariArmat. La multiplu de 10 → ENTRY DELAY"},
+    {l:"Reed",v:"Orice deschidere a usii → ENTRY DELAY imediat, fara numarare"},
+    {l:"Keypad",v:"Cifrele 0-9 pornesc introducerea PIN-ului → PIN_ENTRY"},
+    {l:"App web",v:"Butonul Confirma OK reseteaza contorul PIR la 0 (fals alarm)"},
+    {l:"OLED",v:"Afiseaza: ARMAT mare, status PIR si Reed, instructiune PIN"},
+  ]},
+  entry:{title:"ENTRY DELAY — 20 secunde sa introduci PIN-ul",items:[
+    {l:"Hardware",v:"Buzzer beep la intrare in stare, OLED afiseaza countdown mare"},
+    {l:"Timer",v:"timpStartEntryDelay = millis(). Countdown calculat la fiecare secunda"},
+    {l:"OLED",v:"Countdown mare centrat (TextSize 3), PIN introdus ca asteriscuri, greseli/3"},
+    {l:"Keypad",v:"Cifrele merg in buffer PIN, D confirma manual, # sterge buffer"},
+    {l:"Iesire OK",v:"PIN corect in 20s → dezarmare completa (DEZARMAT)"},
+    {l:"Iesire FAIL",v:"20s expirate fara PIN valid → declansaAlarma('ENTRY DELAY EXPIRAT')"},
+  ]},
+  pin:{title:"PIN ENTRY — introducere cod de securitate",items:[
+    {l:"Buffer",v:"Fiecare cifra se adauga la pinIntrodusPanaAcum (max 4 caractere)"},
+    {l:"Verificare",v:"La 4 cifre: verificare automata dupa 200ms. Sau manual cu tasta D"},
+    {l:"PIN corect",v:"greseliCountConsecutiv = 0, se apeleaza dezarmeazaSistem()"},
+    {l:"PIN gresit",v:"Buffer sters, greseliCountConsecutiv++, pattern sonor rapid (3 beep-uri)"},
+    {l:"3 greseli",v:"greseliCountConsecutiv >= 3 → declansaAlarma + tranzitieSpre(BLOCAT)"},
+    {l:"OLED",v:"Afiseaza asteriscuri pentru cifrele introduse si numarul de greseli"},
+  ]},
+  alarma:{title:"ALARMA ACTIVA — intruziune detectata",items:[
+    {l:"Buzzer",v:"Pattern continuu repetat: 300ms ON, 200ms OFF, 300ms ON, 200ms OFF..."},
+    {l:"OLED",v:"Blink alternativ la 500ms: text ALARMA ACTIVA mare / text introduceti PIN"},
+    {l:"Timer",v:"timpStartAlarma = millis(). Dupa 60s → APEL_112"},
+    {l:"Keypad",v:"Cifrele PIN functioneaza → PIN_ENTRY. 3 greseli → BLOCAT"},
+    {l:"App web",v:"Butonul 'Opreste alarma' → dezarmeazaSistem() direct"},
+    {l:"Dashboard",v:"Banner rosu animat, notificare push browser, eveniment in istoricul alarme"},
+  ]},
+  blocat:{title:"BLOCAT — securitate maxima, keypad dezactivat",items:[
+    {l:"Keypad",v:"COMPLET ignorat in handleKeypad(). Nicio tasta nu are efect"},
+    {l:"Buzzer",v:"Continuu, identic cu ALARMA. Timer 60s tot pornit"},
+    {l:"OLED",v:"Blink alternativ: ALARMA ACTIVA / SISTEM BLOCAT! Oprire doar din app!"},
+    {l:"App web",v:"Singura cale de iesire: comanda 'opreste_alarma' prin WebSocket"},
+    {l:"Dashboard",v:"Banner portocaliu animat, notificare push browser"},
+    {l:"Dupa 60s",v:"Daca nu e oprita: tranzitieSpre(STARE_APEL_112)"},
+  ]},
+  s112:{title:"APEL 112 — alerta de urgenta simulata",items:[
+    {l:"OLED",v:"Afiseaza: APEL 112 IN CURS.. Oprire doar din aplicatie"},
+    {l:"Buzzer",v:"Pattern ALARMA oprit (alarmaActiva = false), buzzer pe LOW"},
+    {l:"App web",v:"Banner albastru animat, notificare push browser, eveniment in istoric"},
+    {l:"Keypad",v:"Total ignorat (STARE_APEL_112 tratat identic cu BLOCAT)"},
+    {l:"Iesire",v:"Doar comanda 'opreste_alarma' din dashboard → dezarmeazaSistem()"},
+    {l:"In cod",v:"sendIstoricAlarma() trimite evenimentul in galeria de alarme din dashboard"},
+  ]},
+};
+function showPanel(key){
+  const d=data[key];
+  document.getElementById('panel-title').textContent=d.title;
+  document.getElementById('panel-grid').innerHTML=d.items.map(i=>`<div class="pitem"><div class="pl">${i.l}</div>${i.v}</div>`).join('');
+  document.getElementById('panel').style.display='block';
+}
+</script>
+</body>
+</html>

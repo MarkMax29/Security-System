@@ -387,14 +387,4 @@ PIN-ul rămâne salvat după repornire și se pierde doar la re-flash complet al
 - Download automat pe calculator
 - Galerie cu previzualizare și lightbox pentru poze
 
----
 
-## Licență
-
-MIT License — liber de folosit și modificat cu menționarea sursei.
-
----
-
-## Autor
-
-Proiect realizat ca lucrare pentru cursul de Sisteme Incorporate · 2026
